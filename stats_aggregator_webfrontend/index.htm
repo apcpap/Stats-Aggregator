@@ -1,0 +1,456 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>twofloats Event Monitor</title>
+
+                <script type="text/javascript" src="js/datetimepicker_css.js"></script>
+		
+		<!-- 1. Add these JavaScript inclusions in the head of your page -->
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+		<script type="text/javascript" src="js/highcharts.js"></script>
+		
+		<!-- 1a) Optional: add a theme file -->
+		<!--
+			<script type="text/javascript" src="../js/themes/gray.js"></script>
+		-->
+		
+		<!-- 1b) Optional: the exporting module -->
+		<script type="text/javascript" src="js/modules/exporting.js"></script>
+				
+		<!-- 2. Add the JavaScript to initialize the chart on document ready -->
+		<script type="text/javascript">
+                        var dataSourceHost = "localhost:8001";
+
+                        var SEPARATOR_CHAR = "!";
+                        var categories = [];
+                        var subcategories = [];
+                        var category = "web";
+                        var username = "";
+                        var password = "";
+                        var startTime;
+                        var endTime;
+                        var startTimeDate = new Date();
+                        var endTimeDate = new Date();
+                        var mouseOnChartX, mouseOnChartX;
+                        var animateChart = true;
+                        var allowedCats;
+
+			var chart;
+                        // define the options
+                        var options;
+
+                        function RefreshGraph() {
+                                options = {
+                                        chart: {
+                                                renderTo: 'container'
+                                        },
+
+                                        title: {
+                                                text: 'dummy'
+                                        },
+
+                                        subtitle: {
+                                                text: 'Source: ' + dataSourceHost
+                                        },
+
+                                        xAxis: {
+                                                type: 'datetime',
+        //						tickInterval: 7 * 24 * 3600 * 1000, // one week
+                                                min: startTimeDate,
+                                                max: endTimeDate,
+                                                tickInterval: (endTimeDate - startTimeDate) / 15, // one week
+                                                tickWidth: 0,
+                                                gridLineWidth: 1,
+                                                labels: {
+                                                        align: 'left',
+                                                        x: 3,
+                                                        y: -3
+                                                }
+                                        },
+
+                                        yAxis: [{ // left y axis
+                                                title: {
+                                                        text: null
+                                                },
+                                                labels: {
+                                                        align: 'left',
+                                                        x: 3,
+                                                        y: 16,
+                                                        formatter: function() {
+                                                                return Highcharts.numberFormat(this.value, 0);
+                                                        }
+                                                },
+                                                showFirstLabel: false
+                                        }, { // right y axis
+                                                linkedTo: 0,
+                                                gridLineWidth: 0,
+                                                opposite: true,
+                                                title: {
+                                                        text: null
+                                                },
+                                                labels: {
+                                                        align: 'right',
+                                                        x: -3,
+                                                        y: 16,
+                                                        formatter: function() {
+                                                                return Highcharts.numberFormat(this.value, 0);
+                                                        }
+                                                },
+                                                showFirstLabel: false
+                                        }],
+
+                                        legend: {
+                                                align: 'left',
+                                                verticalAlign: 'top',
+                                                y: 20,
+                                                floating: true,
+                                                borderWidth: 0
+                                        },
+
+                                        tooltip: {
+                                                shared: true,
+                                                crosshairs: true
+                                        },
+
+                                        plotOptions: {
+                                                series: {
+                                                        cursor: 'pointer',
+                                                        point: {
+                                                                events: {
+                                                                        click: function() {
+                                                                                hs.htmlExpand(null, {
+                                                                                        pageOrigin: {
+                                                                                                x: this.pageX,
+                                                                                                y: this.pageY
+                                                                                        },
+                                                                                        headingText: this.series.name,
+                                                                                        maincontentText: Highcharts.dateFormat('%A, %b %e, %Y', this.x) +':<br/> '+
+                                                                                                this.y +' events',
+                                                                                        width: 200
+                                                                                });
+                                                                        }
+                                                                }
+                                                        },
+                                                        marker: {
+                                                                lineWidth: 1
+                                                        }
+                                                }
+                                        },
+
+                                        series: [{
+                                                name: "seriesname",
+                                                animation: animateChart,
+                                                lineWidth: 4,
+                                                marker: {
+                                                        radius: 4
+                                                }
+//                                        }, {
+//                                                name: 'Category 1'
+                                        }]
+                                };
+
+				// Load data asynchronously using jQuery. On success, add the data
+				// to the options and initiate the chart.
+				// This data is obtained by exporting a GA custom report to TSV.
+				// http://api.jquery.com/jQuery.get/
+
+//                                var cat = escape(BuildCategoryID(categories));
+				jQuery.getJSON('http://' + dataSourceHost + '/bla?action=getstats&category=' + GetSelectedCategory()
+                                                                          + '&user=' + username
+                                                                          + '&password=' + password
+                                                                          + '&starttime=' + startTime
+                                                                          + '&endtime=' + endTime
+                                                                          + '&format=json&jsoncallback=?',
+                                               null, function(jsondom, state, xhr) {
+                                        var values = [],
+                                            date;
+
+                                        jQuery.each(jsondom.items, function(key, value) {
+                                            var t = value.time.split(" ");
+                                            if(parseInt(t[1]) == 0)
+                                               date = Date.UTC(parseInt(t[0], 10), parseInt(t[1], 10), parseInt(t[2], 10), parseInt(t[3], 10), parseInt(t[4], 10), parseInt(t[5], 10));
+                                            else
+                                               date = Date.UTC(parseInt(t[0], 10), parseInt(t[1], 10) - 1, parseInt(t[2], 10), parseInt(t[3], 10), parseInt(t[4], 10), parseInt(t[5], 10));
+                                            var count = parseInt(value.count, 10);
+                                            values.push([
+                                                date,
+                                                count
+                                            ]);
+                                        });
+                                        options.series[0].data = values;
+
+                                        var name = 'all events';
+                                        for(i = 0; i < categories.length; i++)
+                                            name = (i == 0 ? '' : name + '->') + categories[i];
+                                        options.series[0].name = name;
+
+                                        var granNames = ['year', 'month', 'day', 'hour', 'minute', 'second'];
+                                        var title = (categories.length == 0) ? 'All events' : 
+                                                                               '\'' + name + '\' events';
+                                        options.title.text = title + ' per ' + granNames[parseInt(jsondom.granularity, 10) - 1];
+//                                        options.plotOptions.series[0].animation = animateChart;
+//                                        options.series[1].data = values;
+                                        chart = new Highcharts.Chart(options);
+				});
+                        }
+
+                        function convertTimeStringToList(s) {
+                            var r = '' + s;
+                            r = r.replace(/ /g,SEPARATOR_CHAR);
+                            r = r.replace(/:/g,SEPARATOR_CHAR);
+                            r = r.replace(/-/g,SEPARATOR_CHAR);
+                            return r;
+                        }
+
+                        function padNumber(s, len) {
+                            var r = '' + s;
+                            while(r.length < len) {
+                                r = '0' + r;
+                            }
+                            return r;
+                        }
+
+			$(document).ready(function() {
+                            var now = new Date();
+                            var i;
+                            for(i = 0; i < 2; i++) {
+                                var elementId = (i == 0) ? 'endtime' : 'starttime';
+                                document.getElementById(elementId).value = now.getFullYear() + "-"
+                                                                           + padNumber(now.getMonth() + 1,2) + "-"
+                                                                           + padNumber(now.getDate(),2) + " "
+                                                                           + padNumber(now.getHours(),2) + ":"
+                                                                           + padNumber(now.getMinutes(),2) + ":"
+                                                                           + padNumber(now.getSeconds(),2);
+                                now = new Date(now.getTime() - 1000 * 60 * 60);
+                            }
+
+                            UpdateCredentials();
+
+                            var chartDiv=document.getElementById('container');
+                            if (chartDiv.addEventListener)
+                                    chartDiv.addEventListener('DOMMouseScroll', handleMouseWheel, false);
+                            chartDiv.onmousewheel = handleMouseWheel;
+
+                            $("#container").mousemove(function(e){
+                                  mouseOnChartX = (e.pageX - this.offsetLeft) / $("#container").width();
+                                  mouseOnChartY = (e.pageY -this.offsetTop) / $("#container").height();
+                               });
+			});
+
+                        function BuildCategoryID(catList, sep) {
+                            return BuildCategoryIDMax(catList, sep, catList.length);
+                        };
+
+                        function BuildCategoryIDMax(catList, sep, max) {
+                            var s = "";
+                            var i;
+                            for(i = 0; (i < catList.length) && (i < max); i++) {
+                                if(i == 0)
+                                    s = catList[i];
+                                else
+                                    s = s + sep + catList[i];
+                            }
+                            return s;
+                        };
+
+                        function GetSelectedCategory() {
+                            var maincatIdx = document.getElementById('maincategoryselect').selectedIndex;
+                            var cats = [];
+                            var i;
+                            if(maincatIdx <= allowedCats.length)
+                                for(i = 0; i < allowedCats[maincatIdx].length; i++)
+                                    cats.push(allowedCats[maincatIdx][i]);
+                            for(i = 0; i < categories.length; i++)
+                                cats.push(categories[i]);
+                            return BuildCategoryID(cats, SEPARATOR_CHAR);
+                        };
+
+                        function UpdateCategories() {
+//                            var cat = escape(BuildCategoryID(categories));
+                            jQuery.getJSON('http://' + dataSourceHost + '/bla?action=getcategories&category=' + GetSelectedCategory()
+                                                                      + '&user=' + username
+                                                                      + '&password=' + password
+                                                                      + '&format=json&jsoncallback=?',
+                                           null, function(jsondom, state, xhr) {
+                                var txt = "<option>home</option>";
+                                var i;
+                                var numIndent = 3;
+                                for(i = 0; i < categories.length; i++) {
+                                    txt = txt + "<option>";
+                                    var k;
+                                    for(k = 0; k < i * numIndent; k++)
+                                        txt = txt + "&#160;";
+                                    txt = txt + "-> " + categories[i] + "</option>";
+                                }
+                                subcategories = new Array();
+                                jQuery.each(jsondom.items, function(key, value) {
+                                    var cats = value.cat.split(SEPARATOR_CHAR);
+                                    if(cats.length != categories.length) {
+                                        var c = cats[cats.length - 1];
+                                        if(c != "") {
+                                            txt = txt + "<option>";
+                                            var k;
+                                            for(k = 0; k < categories.length * numIndent; k++)
+                                                txt = txt + "&#160;";
+                                            txt = txt + "-> " + c + "</option>";
+                                            subcategories.push(c);
+                                        }
+                                    }
+                                });
+                                var selobj=document.getElementById('categoryselect');
+                                selobj.innerHTML=txt;
+                                selobj.selectedIndex = categories.length;
+                            });
+
+                        };
+
+                        function UpdateCredentials()
+                        {
+                            allowedCats = [];
+                            username = document.getElementById('Username').value;
+                            password = document.getElementById('Password').value;
+                            var mainSelector = document.getElementById('maincategoryselect');
+                            mainSelector.innerHTML='<option>not authorized</option>';
+                            mainSelector.selectedIndex = 0;
+                            var catSelector = document.getElementById('categoryselect');
+                            catSelector.innerHTML='<option>n/a</option>';
+                            catSelector.selectedIndex = 0;
+                            categories = [];
+                            subcategories = [];
+                            jQuery.getJSON('http://' + dataSourceHost + '/bla?action=getauthcategories'
+                                                                      + '&user=' + username
+                                                                      + '&password=' + password
+                                                                      + '&format=json&jsoncallback=?',
+                                           null, function(jsondom, state, xhr) {
+                                var txt = '';
+                                jQuery.each(jsondom.allowedcats, function(key, value) {
+                                    var cats = value.cat.split(SEPARATOR_CHAR);
+                                    allowedCats.push(cats);
+
+                                    txt = txt + '<option>';
+                                    var k;
+                                    for(k = 0; k < cats.length; k++)
+                                        txt = txt + (k == 0 ? '' : '->') + (cats[k] == '' ? '' : cats[k]);
+                                    txt = txt + '</option>';
+                                });
+                                mainSelector.innerHTML=txt;
+                                mainSelector.selectedIndex = 0;
+                                Update();
+                            })
+                        }
+
+                        function MainCatChanged() {
+                            var catSelector = document.getElementById('categoryselect');
+                            catSelector.innerHTML='<option>n/a</option>';
+                            catSelector.selectedIndex = 0;
+                            categories = [];
+                            subcategories = [];
+                            Update();
+                        }
+
+                        function Update()
+                        {
+                            var dropdown = document.getElementById('categoryselect');
+                            var opt = dropdown.options[dropdown.selectedIndex]
+                            var selSubIdx = dropdown.selectedIndex - (dropdown.length - subcategories.length);
+                            if((selSubIdx >= 0) && (selSubIdx < subcategories.length)) {
+                                category = subcategories[selSubIdx];
+                                categories.push(category);
+                            } else {
+                                categories.splice(dropdown.selectedIndex, categories.length);
+                                category = categories.length == 0 ? "" : categories[categories.length - 1];
+                            }
+                            username = document.getElementById('Username').value;
+                            password = document.getElementById('Password').value;
+                            startTime = convertTimeStringToList(document.getElementById("starttime").value);
+                            endTime = convertTimeStringToList(document.getElementById("endtime").value);
+                            var startTimeList = startTime.split(SEPARATOR_CHAR);
+                            var endTimeList = endTime.split(SEPARATOR_CHAR);
+
+                            startTimeDate = Date.UTC(parseInt(startTimeList[0], 10), parseInt(startTimeList[1], 10) - 1, parseInt(startTimeList[2], 10),
+                                                     parseInt(startTimeList[3], 10), parseInt(startTimeList[4], 10), parseInt(startTimeList[5], 10));
+                            endTimeDate = Date.UTC(parseInt(endTimeList[0], 10), parseInt(endTimeList[1], 10) - 1, parseInt(endTimeList[2], 10),
+                                                   parseInt(endTimeList[3], 10), parseInt(endTimeList[4], 10), parseInt(endTimeList[5], 10));
+
+                            UpdateCategories();
+                            RefreshGraph();
+                            return true;
+                        }
+
+                        function handleMouseWheel(event){
+                            var delta = 0;
+                            if (!event) event = window.event;
+                            if (event.wheelDelta) {
+                                    delta = event.wheelDelta/120;
+                                    if (window.opera) delta = -delta;
+                            } else if (event.detail) {
+                                    delta = -event.detail/3;
+                            }
+                            var timeOffset = new Date().getTimezoneOffset() * 60 * 1000;
+
+                            var zoom = 0.5;
+                            var center = startTimeDate + (endTimeDate - startTimeDate) * mouseOnChartX;
+                            var diff = delta < 0 ? (1.0/zoom) * (-delta) : zoom * delta;
+                            var d = [new Date(timeOffset + center - ((center - startTimeDate) * diff)),
+                                     new Date(timeOffset + center + ((endTimeDate - center) * diff))];
+                            for(i = 0; i < 2; i++) {
+                                var elementId = (i == 0) ? 'starttime' : 'endtime';
+                                document.getElementById(elementId).value = d[i].getFullYear() + "-"
+                                                                           + padNumber(d[i].getMonth() + 1,2) + "-"
+                                                                           + padNumber(d[i].getDate(),2) + " "
+                                                                           + padNumber(d[i].getHours(),2) + ":"
+                                                                           + padNumber(d[i].getMinutes(),2) + ":"
+                                                                           + padNumber(d[i].getSeconds(),2);
+                            }
+                            animateChart = false;
+                            Update();
+                            animateChart = true;
+
+                        }
+
+				
+		</script>
+
+		<!-- Additional files for the Highslide popup effect -->
+		<script type="text/javascript" src="http://www.highcharts.com/highslide/highslide-full.min.js"></script>
+		<script type="text/javascript" src="http://www.highcharts.com/highslide/highslide.config.js" charset="utf-8"></script>
+		<link rel="stylesheet" type="text/css" href="http://www.highcharts.com/highslide/highslide.css" />
+
+	</head>
+	<body>
+		<div id="inputdiv" style="width: 250px; height: 400px; margin: 0; float: left">
+
+                    <p>User:<br><INPUT ID="Username" TYPE="text" NAME="inputbox" VALUE="customer2" onchange='UpdateCredentials();'></p>
+                    <p>Password:<br><INPUT ID="Password" TYPE="password" NAME="inputbox" VALUE="customer2" onchange='UpdateCredentials();'></p>
+
+                    <p>Main:<br>
+                        <select id="maincategoryselect" onchange='MainCatChanged();'>
+                            <option>not authorized</option>
+                        </select>
+                    </p>
+
+                    <p>Category:<br>
+                        <select id="categoryselect" name=categoryselect onchange='Update();'>
+                            <option>n/a</option>
+                        </select>
+                    </p>
+                    
+                    <br>
+                    <p>From:<br>
+                        <input DISABLED type="Text" id="starttime" maxlength="20" size="20" onchange='Update();'/>
+                         <img src="images2/cal.gif" alt="" onclick="javascript:NewCssCal ('starttime','yyyyMMdd','dropdown',true,'24', true)" />
+                    </p>
+                    <p>To:<br>
+                         <input DISABLED type="Text" id="endtime" maxlength="20" size="20" onchange='Update();'/>
+                         <img src="images2/cal.gif" alt="" onclick="javascript:NewCssCal ('endtime','yyyyMMdd','dropdown',true,'24', true)" />
+                    </p>
+
+                </div>
+
+		<!-- 3. Add the container -->
+		<div id="container" style="float: left; width: 800px; height: 400px; margin: 0 auto"></div>
+		
+				
+	</body>
+</html>
