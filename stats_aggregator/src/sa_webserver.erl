@@ -10,7 +10,8 @@
          start_link/0,
          get_count/0,
          stop/0,
-         extract_param/2
+         extract_param/2,
+         get_events_json/3
          ]).
 
 %% gen_server callbacks
@@ -77,7 +78,7 @@ handle_call(get_count, _From, State) ->
 handle_cast(stop, State) ->
     {stop, normal, State}.
 
-handle_info({tcp_closed, Socket}, #state{lsock = LSock} = State) ->
+handle_info({tcp_closed, _Socket}, #state{lsock = LSock} = State) ->
     io:format("TCP connection closed~n"),
     {ok, _Sock} = gen_tcp:accept(LSock),
     {noreply, State};

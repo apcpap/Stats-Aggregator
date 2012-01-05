@@ -1,53 +1,16 @@
-# leave these lines alone
-.SUFFIXES: .erl .beam .yrl
+all: deps compile
 
-.erl.beam:
-	erlc -W $<
+compile:
+	rebar compile
 
-.yrl.erl:
-	erlc -W $<
+deps:
+	rebar get-deps
 
-ERL = erl -boot start_clean 
+clean:
+	rebar clean
 
-# Here's a list of the erlang modules you want compiling
-# If the modules don't fit onto one line add a \ character 
-# to the end of the line and continue on the next line
+test:
+	CONFIG=$(PWD)/priv/app.config rebar skip_deps=true eunit
 
-# Edit the lines below
-MODS = module1 module2 \
-       module3 ... special1 ...\
-       ...
-       moduleN
-
-# This is default target - if you just type "make"
-#      then "make all" is assumed.
-
-all: compile
-
-compile: ${MODS:%=%.beam} subdirs
-	
-## special compilation requirements are added here
-
-special1.beam: special1.erl    
-	${ERL} -Dflag1 -W0 special1.erl
-
-## run an application from the makefile
-
-application1: compile
-	${ERL} -pa Dir1  -s application1 start Arg1 Arg2 
-
-# the subdirs target compiles any code in 
-# sub-directories
-
-subdirs:
-	cd dir1; make
-	cd dir2; make
-	...
-
-# remove all the code
-
-clean:	
-	rm -rf *.beam erl_crash.dump
-	cd dir1; make clean
-	cd dir2; make clean  
-
+start:
+	CONFIG=$(PWD)/priv/app.config erl -pz ebin deps/*/ebin -s stats_aggregator_server

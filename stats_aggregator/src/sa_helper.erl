@@ -15,7 +15,8 @@
          is_intlist_inbetween/3,
          is_intlist_leq/2,
          is_intlist_geq/2,
-         list_has_prefix/2
+         list_has_prefix/2,
+         load_config/1
         ]).
 
 %%%===================================================================
@@ -133,3 +134,13 @@ intlist_compare_test() ->
     true     =   is_intlist_geq([1,1]  ,  [1]),
     false    =   is_intlist_geq([0,1]  ,  [1,2]),
     ok.
+
+
+
+load_config(FileName) ->
+	error_logger:info_msg("Loading configuration from ~p.\n", [FileName]),
+	{ok, [Config]} = file:consult(FileName),
+	[set_app_env(C) || C <- Config].
+
+set_app_env({App, Vars}) ->
+	[application:set_env(App, K, V) || {K, V} <- Vars].

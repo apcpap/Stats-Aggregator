@@ -1,0 +1,12 @@
+{application, stats_aggregator_server,
+ [
+  {description, ""},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { stats_aggregator_server_app, []}},
+  {env, []}
+ ]}.
