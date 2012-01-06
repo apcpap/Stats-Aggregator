@@ -5,6 +5,7 @@
         <data xmlns="http://www.netbeans.org/ns/erlang-project/1">
             <name>stats_aggregator</name>
             <source-roots>
+                <root id="src.controllers.dir"/>
                 <root id="src.dir"/>
             </source-roots>
             <include-roots>

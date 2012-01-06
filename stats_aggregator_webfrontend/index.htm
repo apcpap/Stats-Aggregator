@@ -20,7 +20,7 @@
 				
 		<!-- 2. Add the JavaScript to initialize the chart on document ready -->
 		<script type="text/javascript">
-                        var dataSourceHost = "localhost:8001";
+                        var dataHost = "192.168.1.82:9000";
 
                         var SEPARATOR_CHAR = "!";
                         var categories = [];
@@ -51,7 +51,7 @@
                                         },
 
                                         subtitle: {
-                                                text: 'Source: ' + dataSourceHost
+                                                text: 'Source: ' + dataHost
                                         },
 
                                         xAxis: {
@@ -150,18 +150,13 @@
                                         }]
                                 };
 
-				// Load data asynchronously using jQuery. On success, add the data
-				// to the options and initiate the chart.
-				// This data is obtained by exporting a GA custom report to TSV.
-				// http://api.jquery.com/jQuery.get/
-
-//                                var cat = escape(BuildCategoryID(categories));
-				jQuery.getJSON('http://' + dataSourceHost + '/bla?action=getstats&category=' + GetSelectedCategory()
-                                                                          + '&user=' + username
-                                                                          + '&password=' + password
-                                                                          + '&starttime=' + startTime
-                                                                          + '&endtime=' + endTime
-                                                                          + '&format=json&jsoncallback=?',
+				jQuery.getJSON('http://' + dataHost + '/stats_aggregator'
+                                                                          + '/user/' + username
+                                                                          + '/password/' + password
+                                                                          + '/category/' + GetSelectedCategory()
+                                                                          + '/starttime/' + startTime
+                                                                          + '/endtime/' + endTime
+                                                                          + '/stats?jsoncallback=?',
                                                null, function(jsondom, state, xhr) {
                                         var values = [],
                                             date;
@@ -267,11 +262,11 @@
                         };
 
                         function UpdateCategories() {
-//                            var cat = escape(BuildCategoryID(categories));
-                            jQuery.getJSON('http://' + dataSourceHost + '/bla?action=getcategories&category=' + GetSelectedCategory()
-                                                                      + '&user=' + username
-                                                                      + '&password=' + password
-                                                                      + '&format=json&jsoncallback=?',
+                            jQuery.getJSON('http://' + dataHost + '/stats_aggregator'
+                                                                      + '/user/' + username
+                                                                      + '/password/' + password
+                                                                      + '/category/' + GetSelectedCategory()
+                                                                      + '/subcategories?jsoncallback=?',
                                            null, function(jsondom, state, xhr) {
                                 var txt = "<option>home</option>";
                                 var i;
@@ -318,10 +313,10 @@
                             catSelector.selectedIndex = 0;
                             categories = [];
                             subcategories = [];
-                            jQuery.getJSON('http://' + dataSourceHost + '/bla?action=getauthcategories'
-                                                                      + '&user=' + username
-                                                                      + '&password=' + password
-                                                                      + '&format=json&jsoncallback=?',
+                            jQuery.getJSON('http://' + dataHost + '/stats_aggregator/'
+                                                                + '/user/' + username
+                                                                + '/password/' + password
+                                                                + '/authcategories?jsoncallback=?',
                                            null, function(jsondom, state, xhr) {
                                 var txt = '';
                                 jQuery.each(jsondom.allowedcats, function(key, value) {

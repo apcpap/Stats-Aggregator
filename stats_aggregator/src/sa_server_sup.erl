@@ -16,9 +16,7 @@ init([]) ->
 						permanent, 2000, supervisor, [sa_webmachine_sup]},
 	Children = [WebmachineSup,
                     {event_store, {sa_event_store, start_link, []},
-                      permanent, 2000, worker, [sa_event_store]},
-                    {webserver, {sa_webserver, start_link, [8001]},
-                      permanent, 2000, worker, [sa_webserver]}
+                      permanent, 2000, worker, [sa_event_store]}
                    ],
 	RestartStrategy = {one_for_one, 10, 10},
 	{ok, {RestartStrategy, Children}}.

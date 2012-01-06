@@ -14,7 +14,7 @@ start(_StartType, _StartArgs) -> start().
 
 start() ->
 %    configure(),
-    sa_helper:load_config("C:/twofloats/Repositories/StatsAggregator/stats_aggregator/priv/app.config"),
+    sa_helper:load_config("D:/twofloats/Repositories/StatsAggregator/stats_aggregator/priv/app.config"),
     application:start(sasl),
     application:start(crypto),
     application:start(inets),

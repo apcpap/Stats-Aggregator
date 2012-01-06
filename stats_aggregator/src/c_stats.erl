@@ -2,8 +2,6 @@
 -export([
 	init/1,
 	content_types_provided/2,
-	forbidden/2,
-	resource_exists/2,
 	to_json/2,
 	allowed_methods/2,
 	is_authorized/2,
@@ -28,6 +26,7 @@ malformed_request(ReqData, _) ->
 	{Invalid, ReqData, {PostData}}.
 
 is_authorized(ReqData, {PostData}) ->
+%        User = wrq:get_qs_value("user", ReqData),
 	{Authorized, Category} =
 		case wrq:method(ReqData) of
 			% only owner can get
@@ -40,12 +39,6 @@ is_authorized(ReqData, {PostData}) ->
 		end,
 	{Authorized, ReqData, {PostData, Category}}.
 
-forbidden(ReqData, {PostData, Category}) ->
-	{false, ReqData, {PostData, Category}}.
-
-resource_exists(ReqData, {PostData, Category}) ->
-	{true , ReqData, {PostData, Category}}.
-
 content_types_provided(ReqData, Context) ->
     {[{"application/json", to_json}], ReqData, Context}.
 
@@ -57,5 +50,10 @@ to_json(ReqData, {PostData, Category}) ->
                         re:split([?SEPARATOR_CHAR] ++ dict:fetch(endtime, wrq:path_info(ReqData)), [?SEPARATOR_CHAR], [{return, list}])
                    )),
         Body = sa_webserver:get_events_json(Category,StartTime,EndTime),
-    {Body, ReqData, {PostData, Category}}.
+        Response =
+            case wrq:get_qs_value("jsoncallback", ReqData) of
+                undefined ->    Body;
+                Callback  ->    Callback ++ "(" ++ Body ++ ")"
+            end,
+        {Response, ReqData, {PostData, Category}}.
 
